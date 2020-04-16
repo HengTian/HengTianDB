@@ -23,12 +23,12 @@ import static online.hengtian.memory.DbSystem.TABLE_LINE_NUM;
  */
 public class Pager {
     private List<Page> pages;
-    public Pager pagerOpen(Table t,String fileName){
+    public Pager pagerOpen(Table t,String fileName,int len){
         Pager p=new Pager();
         //将磁盘中的数据刷到内存中，后面可以加上限制
         try (RandomAccessFile fd=new RandomAccessFile(fileName,"r")){
             for(int pageIndex=1;pageIndex<=t.getNumPages();pageIndex++) {
-                byte[] content = FileUtils.getContent(fd, TABLE_LINE_NUM + PAGE_SIZE * pageIndex, PAGE_SIZE);
+                byte[] content = FileUtils.getContent(fd, TABLE_LINE_NUM + PAGE_SIZE * (len/PAGE_SIZE+pageIndex), PAGE_SIZE);
                 int sum=0;
                 if(pageIndex==t.getNumPages()){
                     for(int i=0;i<t.getNumRows();i++){
@@ -37,9 +37,9 @@ public class Pager {
                         }
                         sum+=t.getIndexs().get(i);
                     }
-                    content= FileUtils.getContent(fd, TABLE_LINE_NUM + PAGE_SIZE * pageIndex, sum);
+                    content= FileUtils.getContent(fd, TABLE_LINE_NUM + PAGE_SIZE * (len/PAGE_SIZE+pageIndex), sum);
                 }
-                System.out.println(content.length);
+                System.out.println("page "+pageIndex+" length:"+content.length);
                 Page page=new Page();
                 page.setContent(ByteArrayUtils.toByteList(content));
                 t.addPage(page);

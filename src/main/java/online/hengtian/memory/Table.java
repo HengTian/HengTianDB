@@ -22,12 +22,33 @@ import static online.hengtian.memory.DbSystem.TABLE_LINE_NUM;
  * @date 2020/4/15 10:06
  */
 public class Table implements Serializable {
+
     private static final long serialVersionUID = 5256253515960413663L;
+    /**
+     * 表中的行数
+     */
     private Integer numRows;
+    /**
+     * 表中的页数
+     */
     private Integer numPages;
+    /**
+     * 存储页的列表
+     */
     private transient List<Page> pages;
+    /**
+     * 存储每一行数据的长度
+     */
     private List<Integer> indexs;
+    /**
+     * pager负责在打开文件时将数据加载到内存并放到table中
+     * 下面和磁盘打交道的希望都放到pager中，暂时还没完成
+     */
     private transient Pager pager;
+    /**
+     * 在已有数据的基础上标识是否进行了修改操作如insert
+     * 未修改则不进行操作
+     */
     private transient boolean isModify=false;
     /**
      * @description 返回一个table的实例
@@ -36,12 +57,13 @@ public class Table implements Serializable {
      */
     public Table dbOpen(String fileName){
         Table t=new Table();
+        int len=0;
         if(FileUtils.isFileExists(fileName)){
             RandomAccessFile fd= null;
             //读出文件中表的信息
             try {
                 fd = new RandomAccessFile(fileName,"r");
-                int len=fd.readInt();
+                len=fd.readInt();
                 byte[] content=new byte[len];
                 fd.seek(TABLE_LINE_NUM);
                 fd.read(content);
@@ -52,7 +74,7 @@ public class Table implements Serializable {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            Pager p=new Pager().pagerOpen(t,fileName);
+            Pager p=new Pager().pagerOpen(t,fileName,len);
             t.setPager(p);
         } else {
             t.setIndexs(new ArrayList<>());
@@ -61,6 +83,12 @@ public class Table implements Serializable {
         }
         return t;
     }
+
+    /**
+     * 插入用户
+     * @param user
+     * @throws IOException
+     */
     public void insert (User user) throws IOException {
         Optional<byte[]> s = ByteArrayUtils.objectToBytes(user);
         if(pages==null){
@@ -91,12 +119,12 @@ public class Table implements Serializable {
         int rows=numRows;
         int begin=0;
         while(rows>0){
-            if((begin+indexs.get(rowIndex))>=(pageIndex+1)*PAGE_SIZE) {
+            if((begin+indexs.get(rowIndex))>PAGE_SIZE) {
                 pageIndex++;
                 begin=0;
             }
             page=pages.get(pageIndex);
-            System.out.println("page : "+pageIndex);
+            System.out.println("current page : "+pageIndex);
             Byte[] b=new Byte[indexs.get(rowIndex)];
             Optional<Object> optionalO = ByteArrayUtils.bytesToObject(ByteArrayUtils.toPrimitives(page.getContent().subList(begin, begin + indexs.get(rowIndex)).toArray(b)));
             User user = (User) optionalO.get();
