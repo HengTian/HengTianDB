@@ -12,25 +12,25 @@
 
 目前效果图：
 
-![image-20200416164623208](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164623208.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164623208.png)
 
 exit后数据以字节码存储到user.db中
 
-![image-20200416164700244](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164700244.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164700244.png)
 
 第二次运行结果
 
-![image-20200416164830644](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164830644.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164830644.png)
 
-![image-20200416164935903](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164935903.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416164935903.png)
 
 批量插入数据使数据量达到两个page以上
 
-![image-20200416165100651](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416165100651.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416165100651.png)
 
 再次exit重新启动，稳定
 
-![image-20200416165225518](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416165225518.png)
+![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416165225518.png)
 
 ### 数据结构
 
