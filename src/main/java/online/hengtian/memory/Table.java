@@ -33,10 +33,6 @@ public class Table implements Serializable {
      */
     private Integer numPages;
     /**
-     * 存储页的列表
-     */
-    private transient List<Page> pages;
-    /**
      * 存储每一行数据的长度
      */
     private List<Integer> indexs;
@@ -89,23 +85,27 @@ public class Table implements Serializable {
      * @param user
      * @throws IOException
      */
-    public void insert (User user) throws IOException {
+    public boolean insert (User user) throws IOException {
         Optional<byte[]> s = ByteArrayUtils.objectToBytes(user);
-        if(pages==null){
-            pages=new ArrayList<>();
-            pages.add(new Page());
+        if (getPager().getPages()==null){
+            getPager().setPages(new ArrayList<>());
+            getPager().getPages().add(new Page());
             numPages++;
         }
+        if (s.get().length>PAGE_SIZE){
+            return false;
+        }
         //如果插入的数据大于一页就暂时处理不了，这个循环最多进行两次
-        while (!pages.get(pages.size()-1).append(s.get())&&s.get().length <= PAGE_SIZE) {
-            pages.add(new Page());
+        while (!getPage(getPager().getPages().size()-1).append(s.get())&&s.get().length <= PAGE_SIZE) {
+            getPager().getPages().add(new Page());
             numPages++;
         }
         //标记该页是否被修改
-        pages.get(pages.size()-1).setModify(true);
+        getPage(getPager().getPages().size()-1).setModify(true);
         setModify(true);
         indexs.add(s.get().length);
         numRows++;
+        return true;
     }
     public List<User> select() throws IOException, ClassNotFoundException {
         if(numRows==0){
@@ -123,7 +123,7 @@ public class Table implements Serializable {
                 pageIndex++;
                 begin=0;
             }
-            page=pages.get(pageIndex);
+            page=getPage(pageIndex);
             System.out.println("current page : "+pageIndex);
             Byte[] b=new Byte[indexs.get(rowIndex)];
             Optional<Object> optionalO = ByteArrayUtils.bytesToObject(ByteArrayUtils.toPrimitives(page.getContent().subList(begin, begin + indexs.get(rowIndex)).toArray(b)));
@@ -148,26 +148,22 @@ public class Table implements Serializable {
             fd.seek(TABLE_LINE_NUM);
             fd.write(s.get());
             for (int i = 1; i <= getNumPages(); i++) {
-                if (getPages().get(i - 1).isModify()) {
+                if (getPage(i - 1).isModify()) {
                     fd.seek(TABLE_LINE_NUM + PAGE_SIZE * i);
-                    fd.write(getPages().get(i - 1).getBytes());
+                    fd.write(getPage(i - 1).getBytes());
                 }
             }
         }
         return true;
     }
-    public void addPage(Page page){
-        if(getPages()==null){
-            setPages(new ArrayList<>());
-        }
-        getPages().add(page);
+    public Page getPage(int index){
+        return getPager().getPage(index);
     }
     @Override
     public String toString() {
         return "Table{" +
                 "numRows=" + numRows +
                 ", numPages=" + numPages +
-                ", pages=" + pages +
                 ", indexs=" + Arrays.toString(indexs.toArray()) +
                 ", pager=" + pager +
                 '}';
@@ -212,13 +208,6 @@ public class Table implements Serializable {
         this.numRows = numRows;
     }
 
-    public List<Page> getPages() {
-        return pages;
-    }
-
-    public void setPages(List<Page> pages) {
-        this.pages = pages;
-    }
 
 
 }
