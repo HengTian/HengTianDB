@@ -5,7 +5,7 @@
 前提：
 
 1. 固定表结构的存储
-   ![image-20200416163829283](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416163829283.png)
+   ![image](https://github.com/HengTian/HengTianDB/tree/master/images/image-20200416163829283.png)
 2. 目前只能进行insert和select操作
 3. 顺序存储
 4. 数据页每页大小4kb
