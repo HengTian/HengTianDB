@@ -56,7 +56,6 @@ public class Node {
         return null;
     }
     //如果包含该key就更新，如果不包含就插入
-    //后期要改成可以支持有相同节点的
     public void insertOrUpdate(Comparable key,Object obj,BPlusTree tree){
         //如果是叶子节点
         if(isLeaf){
@@ -232,10 +231,9 @@ public class Node {
             }
         }
     }
-
-
-
-    //在一个叶节点的数据未满的时候插入或者更新
+    /**
+     * 在一个叶节点的数据未满的时候插入或者更新
+     */
     public void insertOrUpdate(Comparable key, Object obj) {
         Map.Entry<Comparable,Object> entry=new AbstractMap.SimpleEntry<Comparable, Object>(key,obj);
         //如果关键字列表长度为0，则直接插入

@@ -4,9 +4,12 @@ import online.hengtian.memory.DbSystem;
 import online.hengtian.memory.Page;
 import online.hengtian.memory.Table;
 import online.hengtian.table.User;
+import online.hengtian.utils.MyFileUtils;
 import online.hengtian.utils.SerializeUtils;
+import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -23,12 +26,14 @@ import static online.hengtian.myperl.PrepareResult.*;
  * @date 2020.4.14
  */
 public class FrontEnd {
+    public final static File redoLog=new File("redo.log");
+
     public static void main(String[] args){
         printPromptFront();//打印提示内容
         InputStreamReader isr = new InputStreamReader(System.in);
         BufferedReader br = new BufferedReader(isr);
         boolean isExit=true;
-        Table table=new Table().dbOpen(DB_FILE_NAME);
+        Table table=new Table().dbOpen("user");
         while(isExit){
             printPrompt();
             String s = null;
@@ -72,7 +77,7 @@ public class FrontEnd {
                     }
                 }else{
                     System.out.println("Thanks for using~");
-                    table.dbClose(DB_FILE_NAME);
+                    table.dbClose("user");
                     isExit=false;
                     br.close();
                     isr.close();
@@ -114,6 +119,8 @@ public class FrontEnd {
             statement.setType(TABLE_SELECT);
             return PREPARE_SUCCESS;
         }else if (s.contains(TABLE_INSERT)){
+            //将语句写入redo.log
+            MyFileUtils.writeLine(s);
             statement.setType(TABLE_INSERT);
             String[] strings = s.split(" ");
             if (strings.length!=TABLE_LINE_NUM){

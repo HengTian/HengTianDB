@@ -2,7 +2,7 @@ package online.hengtian.memory;
 
 import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
-import online.hengtian.utils.FileUtils;
+import online.hengtian.utils.MyFileUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,15 +13,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static online.hengtian.memory.DbSystem.PAGE_SIZE;
-import static online.hengtian.memory.DbSystem.TABLE_LINE_NUM;
+import static online.hengtian.memory.DbSystem.*;
 
 /**
  * @author 陆子恒
  * @version 1.0
  * @date 2020/4/15 10:06
  */
-public class Table implements Serializable {
+public class Table<T extends Comparable> implements Serializable {
 
     private static final long serialVersionUID = 5256253515960413663L;
     /**
@@ -32,6 +31,10 @@ public class Table implements Serializable {
      * 表中的页数
      */
     private Integer numPages;
+    /**
+     * 存储每一行数据的键
+     */
+    private List<T> keys;
     /**
      * 存储每一行数据的长度
      */
@@ -47,35 +50,18 @@ public class Table implements Serializable {
      */
     private transient boolean isModify=false;
     /**
-     * @description 返回一个table的实例
+     * 读取.table文件，返回一个table的实例
      * @param fileName
      * @return
      */
     public Table dbOpen(String fileName){
         Table t=new Table();
-        int len=0;
-        if(FileUtils.isFileExists(fileName)){
-            RandomAccessFile fd= null;
-            //读出文件中表的信息
-            try {
-                fd = new RandomAccessFile(fileName,"r");
-                len=fd.readInt();
-                byte[] content=new byte[len];
-                fd.seek(TABLE_LINE_NUM);
-                fd.read(content);
-                t=(Table)ByteArrayUtils.bytesToObject(content).get();
-                System.out.println(t);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Pager p=new Pager().pagerOpen(t,fileName,len);
-            t.setPager(p);
-        } else {
-            t.setIndexs(new ArrayList<>());
-            t.setNumRows(0);
-            t.setNumPages(0);
+        try {
+            t=tableRead(fileName);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return t;
     }
@@ -136,26 +122,67 @@ public class Table implements Serializable {
         }
         return users;
     }
-    public boolean dbClose(String fileName) throws IOException {
+
+    /**
+     * 关闭数据库时将table实例写入.table文件,将表的数据写入页中,将简化的B+树结构存储到文件中
+     * @
+     * @return
+     * @throws IOException
+     */
+    public boolean dbClose(String fileName) {
         if(isModify()) {
-            RandomAccessFile fd = new RandomAccessFile(fileName, "rw");
-            Optional<byte[]> s = ByteArrayUtils.objectToBytes(this);
-            int len = s.get().length;
-            System.out.println(len);
-            System.out.println((Table) ByteArrayUtils.bytesToObject(s.get()).get());
-            fd.seek(0);
-            fd.writeInt(len);
-            fd.seek(TABLE_LINE_NUM);
-            fd.write(s.get());
-            for (int i = 1; i <= getNumPages(); i++) {
-                if (getPage(i - 1).isModify()) {
-                    fd.seek(TABLE_LINE_NUM + PAGE_SIZE * i);
-                    fd.write(getPage(i - 1).getBytes());
-                }
+            try {
+                tableWrite(fileName);
+                getPager().pageWrite(fileName,0,getNumPages());
+                getPager().bTreeWrite(fileName);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
         }
         return true;
     }
+
+
+    public Table tableRead(String fileName) throws IOException {
+        String file=fileName+DB_TABLE_SUFFIX;
+        Table t=new Table();
+        if(MyFileUtils.isFileExists(file)) {
+            System.out.println("读取table");
+            RandomAccessFile fd = new RandomAccessFile(file, "r");
+            int len = fd.readInt();
+            byte[] content = new byte[len];
+            fd.seek(TABLE_LINE_NUM);
+            fd.read(content);
+            t = (Table) ByteArrayUtils.bytesToObject(content).get();
+            System.out.println(t);
+            fd.close();
+            Pager p=new Pager().pagerOpen(t,fileName);
+            t.setPager(p);
+        }else{
+            t.setIndexs(new ArrayList<>());
+            t.setKeys(new ArrayList());
+            t.setNumRows(0);
+            t.setNumPages(0);
+            t.setPager(new Pager());
+        }
+        return t;
+    }
+    public boolean tableWrite(String fileName) throws IOException {
+        System.out.println("写入table");
+        RandomAccessFile fd = new RandomAccessFile(fileName+DB_TABLE_SUFFIX, "rw");
+        Optional<byte[]> s = ByteArrayUtils.objectToBytes(this);
+        int len = s.get().length;
+        System.out.println("关闭数据库时表的长度: "+len);
+        System.out.println("关闭数据库时表的结构: "+ (Table) ByteArrayUtils.bytesToObject(s.get()).get());
+        fd.seek(0);
+        fd.writeInt(len);
+        fd.seek(TABLE_LINE_NUM);
+        fd.write(s.get());
+        fd.close();
+        return true;
+    }
+
     public Page getPage(int index){
         return getPager().getPage(index);
     }
@@ -165,6 +192,7 @@ public class Table implements Serializable {
                 "numRows=" + numRows +
                 ", numPages=" + numPages +
                 ", indexs=" + Arrays.toString(indexs.toArray()) +
+                ", keys=" + Arrays.toString(keys.toArray()) +
                 ", pager=" + pager +
                 '}';
     }
@@ -208,6 +236,11 @@ public class Table implements Serializable {
         this.numRows = numRows;
     }
 
+    public List<T> getKeys() {
+        return keys;
+    }
 
-
+    public void setKeys(List<T> keys) {
+        this.keys = keys;
+    }
 }

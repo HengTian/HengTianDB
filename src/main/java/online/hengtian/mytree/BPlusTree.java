@@ -16,6 +16,17 @@ public class BPlusTree implements B {
      * B树叶子节点的数据长度L
      */
     protected int length;
+    public BPlusTree(int order){
+        if (order < 3) {
+            System.out.print("order must be greater than 2");
+            System.exit(0);
+        }
+        this.order = order;
+        this.length=order;
+        root = new Node(true, true);
+        head = root;
+    }
+
     public BPlusTree(int order, int length) {
         if (order < 3) {
             System.out.print("order must be greater than 2");
@@ -40,16 +51,7 @@ public class BPlusTree implements B {
     public void insertOrUpdate(Comparable key, Object obj) {
         root.insertOrUpdate(key,obj,this);
     }
-    public BPlusTree(int order){
-        if (order < 3) {
-            System.out.print("order must be greater than 2");
-            System.exit(0);
-        }
-        this.order = order;
-        this.length=order;
-        root = new Node(true, true);
-        head = root;
-    }
+
 
 
     public Node getRoot() {
@@ -85,10 +87,10 @@ public class BPlusTree implements B {
     }
 
     public static void main(String[] args) {
-        BPlusTree tree = new BPlusTree(6);
+        BPlusTree tree = new BPlusTree(6,10);
         Random random = new Random();
         long current = System.currentTimeMillis();
-        for (int j = 0; j < 100000; j++) {
+        for (int j = 0; j < 10000; j++) {
             for (int i = 0; i < 100; i++) {
                 int randomNumber = random.nextInt(100000);
                 tree.insertOrUpdate(randomNumber, randomNumber);
@@ -104,8 +106,8 @@ public class BPlusTree implements B {
             }
             head=head.next;
         }
-        //int search = 80;
-        //System.out.print(tree.get(search));
+        int search = 80;
+        System.out.print(tree.get(search));
     }
 
 
