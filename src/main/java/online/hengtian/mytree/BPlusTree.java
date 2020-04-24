@@ -2,6 +2,8 @@ package online.hengtian.mytree;
 
 import org.omg.IOP.ENCODING_CDR_ENCAPS;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -38,7 +40,7 @@ public class BPlusTree implements B {
         head = root;
     }
     @Override
-    public Object get(Comparable key) {
+    public RowIndex get(Comparable key) {
         return root.get(key);
     }
 
@@ -52,7 +54,39 @@ public class BPlusTree implements B {
         root.insertOrUpdate(key,obj,this);
     }
 
+    @Override
+    public void printTree() {
+        Node head=getHead();
+        while(head!=null) {
+            for (Map.Entry entry : head.getEntries()) {
+                System.out.println(entry.getValue());
+            }
+            head=head.next;
+        }
+    }
 
+    public List<Comparable> getKeys(){
+        List<Comparable> result=new ArrayList<>();
+        Node head=getHead();
+        while(head!=null) {
+            for (Map.Entry entry : head.getEntries()) {
+                result.add((Comparable) entry.getKey());
+            }
+            head=head.next;
+        }
+        return result;
+    }
+    public List<Object> getValues(){
+        List<Object> result=new ArrayList<>();
+        Node head=getHead();
+        while(head!=null) {
+            for (Map.Entry entry : head.getEntries()) {
+                result.add(entry.getValue());
+            }
+            head=head.next;
+        }
+        return result;
+    }
 
     public Node getRoot() {
         return root;
@@ -107,7 +141,8 @@ public class BPlusTree implements B {
             head=head.next;
         }
         int search = 80;
-        System.out.print(tree.get(search));
+        System.out.print(tree.get(search).getValue());
+        System.out.println(tree.get(search).getRowNum());
     }
 
 

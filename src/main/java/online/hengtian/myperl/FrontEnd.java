@@ -3,6 +3,7 @@ package online.hengtian.myperl;
 import online.hengtian.memory.DbSystem;
 import online.hengtian.memory.Page;
 import online.hengtian.memory.Table;
+import online.hengtian.mytree.BPlusTree;
 import online.hengtian.table.User;
 import online.hengtian.utils.MyFileUtils;
 import online.hengtian.utils.SerializeUtils;
@@ -91,13 +92,7 @@ public class FrontEnd {
 
     private static ExcuteResult excuteStatement(Table t,Statement statement){
         if(TABLE_INSERT.equals(statement.getType())){
-            try {
-                t.insert(statement.getUser());
-            } catch (IOException e) {
-                System.err.println(e.toString());
-                return EXCUTE_ERROR;
-            }
-
+            t.insert(statement.getUser());
         }else if(TABLE_SELECT.equals(statement.getType())){
             try {
                 t.select();

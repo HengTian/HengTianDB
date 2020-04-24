@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static online.hengtian.memory.DbSystem.*;
 
@@ -24,6 +25,7 @@ public class Pager {
         pages=new ArrayList<>();
         List<Page> pagesList = getPages(t.getIndexs(), fileName, 0, t.getNumPages());
         pages.addAll(pagesList);
+        //System.out.println(getPageNum(21,t.getIndexs()));
         return this;
     }
 
@@ -81,9 +83,8 @@ public class Pager {
     }
     public boolean bTreeWrite(String fileName) throws IOException {
         System.out.println("写入bTree");
-//        RandomAccessFile fd = new RandomAccessFile(fileName, "rw");
+//        RandomAccessFile fd = new RandomAccessFile(fileName+DB_BTREE_SUFFIX, "rw");
 //        Optional<byte[]> s = ByteArrayUtils.objectToBytes(this);
-//        fd.seek(TABLE_LINE_NUM);
 //        fd.write(s.get());
         return true;
     }
@@ -92,6 +93,18 @@ public class Pager {
             setPages(new ArrayList<>());
         }
         getPages().add(page);
+    }
+
+    public int getPageNum(int rowNum,List<Integer> indexs){
+        int sum=0,pageNum=0;
+        for(int i=0;i<=rowNum;i++){
+            if(sum+indexs.get(i)>PAGE_SIZE){
+                pageNum++;
+                sum=0;
+            }
+            sum+=indexs.get(i);
+        }
+        return pageNum;
     }
     public Page getPage(int index){
         return getPages().get(index);

@@ -14,5 +14,7 @@ public class DbSystem {
     public final static String DB_BTREE_SUFFIX=".b";
     public final static String DB_REDO_LOG="redo.log";
     public final static Integer TABLE_LINE_NUM=4;
+    public final static Integer TREE_LEVEL=4;
+    public final static Integer TREE_LENGTH=4;
 
 }

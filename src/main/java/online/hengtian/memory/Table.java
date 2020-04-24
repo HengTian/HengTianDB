@@ -1,5 +1,7 @@
 package online.hengtian.memory;
 
+import online.hengtian.mytree.BPlusTree;
+import online.hengtian.mytree.Node;
 import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
 import online.hengtian.utils.MyFileUtils;
@@ -8,10 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static online.hengtian.memory.DbSystem.*;
 
@@ -20,9 +19,18 @@ import static online.hengtian.memory.DbSystem.*;
  * @version 1.0
  * @date 2020/4/15 10:06
  */
-public class Table<T extends Comparable> implements Serializable {
+public class Table implements Serializable {
 
     private static final long serialVersionUID = 5256253515960413663L;
+    /**
+     * 这个树存具体的对象
+     */
+    private transient BPlusTree tree;
+    /**
+     * 这个树中存主键与长度
+     */
+    private transient BPlusTree indexTree;
+
     /**
      * 表中的行数
      */
@@ -34,7 +42,7 @@ public class Table<T extends Comparable> implements Serializable {
     /**
      * 存储每一行数据的键
      */
-    private List<T> keys;
+    private List<Comparable> keys;
     /**
      * 存储每一行数据的长度
      */
@@ -65,19 +73,45 @@ public class Table<T extends Comparable> implements Serializable {
         }
         return t;
     }
-
+    public boolean insert(User user){
+        if(tree==null){
+            tree=new BPlusTree(TREE_LEVEL,TREE_LENGTH);
+        }
+        tree.insertOrUpdate(user.getId(),user);
+        return true;
+    }
+    public boolean insertPage(){
+        List<Object> values = tree.getValues();
+        for (Object user:values) {
+            try {
+                insertPageRow((User)user);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
     /**
      * 插入用户
      * @param user
      * @throws IOException
      */
-    public boolean insert (User user) throws IOException {
-        Optional<byte[]> s = ByteArrayUtils.objectToBytes(user);
+    // todo 没考虑在中间插入的情况
+    public boolean insertPageRow (User user) throws IOException {
+        Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
         if (getPager().getPages()==null){
             getPager().setPages(new ArrayList<>());
             getPager().getPages().add(new Page());
             numPages++;
+            //tree=new BPlusTree(TREE_LEVEL,TREE_LENGTH);
         }
+        //插入到树中
+        //tree.insertOrUpdate(user.getId(),user);
+
+
+        //tree.printTree();
+
+
         if (s.get().length>PAGE_SIZE){
             return false;
         }
@@ -89,10 +123,12 @@ public class Table<T extends Comparable> implements Serializable {
         //标记该页是否被修改
         getPage(getPager().getPages().size()-1).setModify(true);
         setModify(true);
-        indexs.add(s.get().length);
+        //插入索引树
+        indexTree.insertOrUpdate(user.getId(),s.get().length);
         numRows++;
         return true;
     }
+    //todo 查询走的原本的页，不行
     public List<User> select() throws IOException, ClassNotFoundException {
         if(numRows==0){
             return null;
@@ -130,8 +166,10 @@ public class Table<T extends Comparable> implements Serializable {
      * @throws IOException
      */
     public boolean dbClose(String fileName) {
-        if(isModify()) {
+//        if(isModify()) {
             try {
+                //把树中的数据插入到Page里
+                insertPage();
                 tableWrite(fileName);
                 getPager().pageWrite(fileName,0,getNumPages());
                 getPager().bTreeWrite(fileName);
@@ -139,15 +177,23 @@ public class Table<T extends Comparable> implements Serializable {
                 e.printStackTrace();
             }
 
-        }
+//        }
         return true;
     }
-
+    public void indexRead(List<Comparable> keys,List<Integer> indexs){
+        if(indexTree==null){
+            indexTree=new BPlusTree(TREE_LEVEL,TREE_LENGTH);
+        }
+        for(int i=0;i<keys.size();i++){
+            indexTree.insertOrUpdate(keys.get(i),indexs.get(i));
+        }
+        indexTree.printTree();
+    }
 
     public Table tableRead(String fileName) throws IOException {
-        String file=fileName+DB_TABLE_SUFFIX;
-        Table t=new Table();
-        if(MyFileUtils.isFileExists(file)) {
+        String file = fileName + DB_TABLE_SUFFIX;
+        Table t = new Table();
+        if (MyFileUtils.isFileExists(file)) {
             System.out.println("读取table");
             RandomAccessFile fd = new RandomAccessFile(file, "r");
             int len = fd.readInt();
@@ -155,22 +201,34 @@ public class Table<T extends Comparable> implements Serializable {
             fd.seek(TABLE_LINE_NUM);
             fd.read(content);
             t = (Table) ByteArrayUtils.bytesToObject(content).get();
+            t.indexRead(t.getKeys(), t.getIndexs());
             System.out.println(t);
             fd.close();
-            Pager p=new Pager().pagerOpen(t,fileName);
+            Pager p = new Pager().pagerOpen(t, fileName);
             t.setPager(p);
-        }else{
+        } else {
             t.setIndexs(new ArrayList<>());
             t.setKeys(new ArrayList());
             t.setNumRows(0);
             t.setNumPages(0);
             t.setPager(new Pager());
+            t.setTree(new BPlusTree(TREE_LEVEL, TREE_LENGTH));
+            t.setIndexTree(new BPlusTree(TREE_LEVEL,TREE_LENGTH));
         }
         return t;
     }
     public boolean tableWrite(String fileName) throws IOException {
         System.out.println("写入table");
         RandomAccessFile fd = new RandomAccessFile(fileName+DB_TABLE_SUFFIX, "rw");
+        setKeys(tree.getKeys());
+        //写入indexs
+        Node head=indexTree.getHead();
+        while(head!=null) {
+            for (Map.Entry entry : head.getEntries()) {
+                getIndexs().add((Integer) entry.getValue());
+            }
+            head=head.getNext();
+        }
         Optional<byte[]> s = ByteArrayUtils.objectToBytes(this);
         int len = s.get().length;
         System.out.println("关闭数据库时表的长度: "+len);
@@ -236,11 +294,27 @@ public class Table<T extends Comparable> implements Serializable {
         this.numRows = numRows;
     }
 
-    public List<T> getKeys() {
+    public List<Comparable> getKeys() {
         return keys;
     }
 
-    public void setKeys(List<T> keys) {
+    public void setKeys(List<Comparable> keys) {
         this.keys = keys;
+    }
+
+    public BPlusTree getTree() {
+        return tree;
+    }
+
+    public void setTree(BPlusTree tree) {
+        this.tree = tree;
+    }
+
+    public BPlusTree getIndexTree() {
+        return indexTree;
+    }
+
+    public void setIndexTree(BPlusTree indexTree) {
+        this.indexTree = indexTree;
     }
 }

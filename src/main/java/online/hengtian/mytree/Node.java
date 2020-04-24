@@ -30,13 +30,19 @@ public class Node {
         this(isLeaf);
         this.isRoot = isRoot;
     }
-    public Object get(Comparable key){
+
+    public RowIndex get(Comparable key){
         if(isLeaf){
-            for(Map.Entry<Comparable,Object> entry:entries){
-                if(entry.getKey().compareTo(key)==0){
-                    return entry.getValue();
+            for (int i=0;i<entries.size();i++){
+                if(entries.get(i).getKey().compareTo(key)==0){
+                    return new RowIndex(this,i);
                 }
             }
+//            for(Map.Entry<Comparable,Object> entry:entries){
+//                if(entry.getKey().compareTo(key)==0){
+//                    return entry.getValue();
+//                }
+//            }
             return null;
         }else {
             if(key.compareTo(entries.get(0).getKey())<=0){
