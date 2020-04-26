@@ -81,13 +81,6 @@ public class Pager {
         fd.close();
         return true;
     }
-    public boolean bTreeWrite(String fileName) throws IOException {
-        System.out.println("写入bTree");
-//        RandomAccessFile fd = new RandomAccessFile(fileName+DB_BTREE_SUFFIX, "rw");
-//        Optional<byte[]> s = ByteArrayUtils.objectToBytes(this);
-//        fd.write(s.get());
-        return true;
-    }
     public void addPage(Page page){
         if(getPages()==null){
             setPages(new ArrayList<>());

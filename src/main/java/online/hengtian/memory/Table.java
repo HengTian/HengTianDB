@@ -172,7 +172,6 @@ public class Table implements Serializable {
                 insertPage();
                 tableWrite(fileName);
                 getPager().pageWrite(fileName,0,getNumPages());
-                getPager().bTreeWrite(fileName);
             } catch (IOException e) {
                 e.printStackTrace();
             }
