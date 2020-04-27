@@ -1,6 +1,9 @@
 package online.hengtian.memory;
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * @author <a href="lzh@sq108.com">陆子恒</a>
@@ -50,5 +53,24 @@ public class LRUList{
         }else{
             oldList.put(key,page);
         }
+    }
+
+    public Page getPageKey(Comparable key){
+        Set<Comparable> keys=new TreeSet<>();
+        keys.addAll(youngList.keySet());
+        keys.addAll(oldList.keySet());
+        Iterator<Comparable> it = keys.iterator();
+        while (it.hasNext()) {
+            Comparable next = it.next();
+            if(key.compareTo(next)>0){
+                if(!it.hasNext()) {
+                    return get(next);
+                }
+                if(key.compareTo(it.next())<=0){
+                    return get(next);
+                }
+            }
+        }
+        return null;
     }
 }

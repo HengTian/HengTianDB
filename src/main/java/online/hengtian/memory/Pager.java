@@ -1,5 +1,6 @@
 package online.hengtian.memory;
 
+import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
 import online.hengtian.utils.MyFileUtils;
 
@@ -20,7 +21,12 @@ import static online.hengtian.memory.DbSystem.*;
  */
 public class Pager {
     private List<Page> pages;
-    public Pager pagerOpen(Table t,String fileName){
+
+    public Pager() {
+        pages=new ArrayList<>();
+    }
+
+    public Pager pagerOpen(Table t, String fileName){
         //将磁盘中的数据刷到内存中，后面可以加上限制
         pages=new ArrayList<>();
         List<Page> pagesList = getPages(t.getIndexs(), fileName, 0, t.getNumPages());
@@ -73,10 +79,8 @@ public class Pager {
         System.out.println("写入page");
         RandomAccessFile fd = new RandomAccessFile(fileName+DB_STORAGE_SUFFIX, "rw");
         for (int i = from; i < numPage; i++) {
-            if (getPage(i).isModify()) {
-                fd.seek(PAGE_SIZE * i);
-                fd.write(getPage(i).getBytes());
-            }
+            fd.seek(PAGE_SIZE * i);
+            fd.write(getPage(i).getBytes());
         }
         fd.close();
         return true;
@@ -87,7 +91,24 @@ public class Pager {
         }
         getPages().add(page);
     }
-
+    public boolean updatePageRow(List<User> user,Integer index,Table t){
+        if(getPages().size()==0){
+            getPages().add(new Page());
+        }
+        this.getPages().set(index,new Page());
+        for(int i=0;i<user.size();i++){
+            Optional<byte[]>s = ByteArrayUtils.objectToBytes(user.get(i));
+            if (s.get().length>PAGE_SIZE){
+                return false;
+            }
+            //如果插入的数据大于一页就暂时处理不了，这个循环最多进行两次
+            while (!getPage(index).append(s.get())&&s.get().length <= PAGE_SIZE) {
+                index++;
+                getPages().set(index,new Page());
+            }
+        }
+        return true;
+    }
     public int getPageNum(int rowNum,List<Integer> indexs){
         int sum=0,pageNum=0;
         for(int i=0;i<=rowNum;i++){

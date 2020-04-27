@@ -94,17 +94,7 @@ public class FrontEnd {
         if(TABLE_INSERT.equals(statement.getType())){
             t.insert(statement.getUser());
         }else if(TABLE_SELECT.equals(statement.getType())){
-            try {
-                t.select();
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.err.println(e.toString());
-                return EXCUTE_ERROR;
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-                System.err.println(e.toString());
-                return EXCUTE_ERROR;
-            }
+            t.select();
         }
         return EXCUTE_SUCCESS;
     }
