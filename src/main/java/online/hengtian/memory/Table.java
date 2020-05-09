@@ -57,11 +57,13 @@ public class Table implements Serializable {
      * 未修改则不进行操作
      */
     private transient boolean isModify=false;
+
     /**
      * 读取.table文件，返回一个table的实例
      * @param fileName
      * @return
      */
+
     public Table dbOpen(String fileName){
         Table t=new Table();
         try {
@@ -73,9 +75,19 @@ public class Table implements Serializable {
         }
         return t;
     }
+    public boolean delete(User user){
+        if(tree.get(user.getId())==null){
+            return false;
+        }
+        tree.remove(user.getId());
+        return true;
+    }
     public boolean insert(User user){
         if(tree==null){
             tree=new BPlusTree(TREE_LEVEL,TREE_LENGTH);
+        }
+        if(tree.get(user.getId())!=null&&!isModify){
+            return false;
         }
         tree.insertOrUpdate(user.getId(),user);
         Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
@@ -87,8 +99,6 @@ public class Table implements Serializable {
         List<User> users=new ArrayList<>();
         for (Object user:values) {
             users.add((User)user);
-            Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
-            //System.out.println(s.get().length);
         }
         getPager().updatePageRow(users,0,this);
         return true;
@@ -107,10 +117,10 @@ public class Table implements Serializable {
     }
     /**
      * 页后面追加插入用户，暂时弃用
+     * todo 没考虑在中间插入的情况
      * @param user
      * @throws IOException
      */
-    // todo 没考虑在中间插入的情况
     public boolean insertPageRow (User user) throws IOException {
         Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
         if (getPager().getPages()==null){
@@ -121,11 +131,6 @@ public class Table implements Serializable {
         }
         //插入到树中
         //tree.insertOrUpdate(user.getId(),user);
-
-
-        //tree.printTree();
-
-
         if (s.get().length>PAGE_SIZE){
             return false;
         }

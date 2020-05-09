@@ -21,6 +21,10 @@ public class User implements Serializable {
         lengths=new ArrayList<>();
     }
 
+    public User(Integer id) {
+        this.id = id;
+    }
+
     public User(Integer id, String username, String email) {
         this.id = id;
         this.username = username;

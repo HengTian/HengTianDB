@@ -92,9 +92,19 @@ public class FrontEnd {
 
     private static ExcuteResult excuteStatement(Table t,Statement statement){
         if(TABLE_INSERT.equals(statement.getType())){
-            t.insert(statement.getUser());
+            t.setModify(false);
+            if(!t.insert(statement.getUser())){
+                return EXCUTE_ERROR;
+            }
         }else if(TABLE_SELECT.equals(statement.getType())){
             t.select();
+        }else if(TABLE_UPDATE.equals(statement.getType())){
+            t.setModify(true);
+            t.insert(statement.getUser());
+        }else if(TABLE_DELETE.equals(statement.getType())){
+            if(!t.delete(statement.getUser())){
+                return EXCUTE_ERROR;
+            }
         }
         return EXCUTE_SUCCESS;
     }
@@ -113,8 +123,25 @@ public class FrontEnd {
                 return PREPARE_SYNTAX_ERROR;
             }
             statement.setUser(new User(Integer.parseInt(strings[1]),strings[2],strings[3]));
-
             return PREPARE_SUCCESS;
+        }else if(s.contains(TABLE_UPDATE)){
+            statement.setType(TABLE_UPDATE);
+            String[] strings = s.split(" ");
+            if (strings.length!=TABLE_LINE_NUM){
+                System.out.println(Arrays.toString(strings));
+                return PREPARE_SYNTAX_ERROR;
+            }
+            statement.setUser(new User(Integer.parseInt(strings[1]),strings[2],strings[3]));
+            return PREPARE_SUCCESS;
+        }else if(s.contains(TABLE_DELETE)){
+            statement.setType(TABLE_DELETE);
+            String s1 = s.trim();
+            try {
+                int i = Integer.parseInt(s1);
+                statement.setUser(new User(i));
+            }catch (Exception e){
+                return PREPARE_SYNTAX_ERROR;
+            }
         }
         return PREPARE_UNRECOGNIZED_STATEMENT;
     }
