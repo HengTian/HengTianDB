@@ -1,5 +1,6 @@
 package online.hengtian.memory;
 
+import online.hengtian.table.TableBean;
 import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
 import online.hengtian.utils.MyFileUtils;
@@ -91,7 +92,7 @@ public class Pager {
         }
         getPages().add(page);
     }
-    public boolean updatePageRow(List<User> user,Integer index,Table t){
+    public <T extends TableBean> boolean updatePageRow(List<T> user, Integer index, Table t){
         if(getPages().size()==0){
             getPages().add(new Page());
         }
@@ -104,7 +105,12 @@ public class Pager {
             //如果插入的数据大于一页就暂时处理不了，这个循环最多进行两次
             while (!getPage(index).append(s.get())&&s.get().length <= PAGE_SIZE) {
                 index++;
-                getPages().set(index,new Page());
+                if(getPages().size()>index){
+                    getPages().set(index,new Page());
+                }else{
+                    getPages().add(new Page());
+                }
+
             }
         }
         return true;

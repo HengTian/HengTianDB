@@ -9,7 +9,7 @@ import java.util.List;
  * @version 1.0
  * @date 2020/4/15 9:30
  */
-public class User implements Serializable {
+public class User  implements Serializable {
 
     private static final long serialVersionUID = -5792446203444901437L;
     private Integer id;

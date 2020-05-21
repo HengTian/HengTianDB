@@ -18,4 +18,6 @@ public class DbSystem {
     public final static Integer TREE_LEVEL=4;
     public final static Integer TREE_LENGTH=4;
 
+    public final static String TABLE_STORAGE_PACKAGE="online.hengtian.tablebean";
+    public final static String ROOT_PATH="D:/Users/HengTian/Desktop/HengTianDB/src/main/java/";
 }

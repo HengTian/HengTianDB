@@ -4,6 +4,7 @@ import online.hengtian.memory.DbSystem;
 import online.hengtian.memory.Page;
 import online.hengtian.memory.Table;
 import online.hengtian.mytree.BPlusTree;
+import online.hengtian.table.TableBean;
 import online.hengtian.table.User;
 import online.hengtian.utils.MyFileUtils;
 import online.hengtian.utils.SerializeUtils;
@@ -13,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,12 +43,19 @@ public class FrontEnd {
             Statement statement=new Statement();
             try {
                 s = br.readLine();
-                if (!"exit".equals(s)){
+                StringBuffer sb=new StringBuffer();
+                while(!s.endsWith(";")){
+                    sb.append(s);
+                    continue;
+                }
+                s=sb.toString();
+                System.out.println(s);
+                if (!"exit;".equals(s)){
                     switch (prepareStatement(s,statement)){
                         case PREPARE_SUCCESS:
                             System.out.println(statement.getType()+" success");
-                            if (statement.getUser()!=null) {
-                                System.out.println(statement.getUser().toString());
+                            if (statement.getBean()!=null) {
+                                System.out.println(statement.getBean().toString());
                             }
                             break;
                         case PREPARE_SYNTAX_ERROR:
@@ -93,57 +102,30 @@ public class FrontEnd {
     private static ExcuteResult excuteStatement(Table t,Statement statement){
         if(TABLE_INSERT.equals(statement.getType())){
             t.setModify(false);
-            if(!t.insert(statement.getUser())){
+            if(!t.insert(statement.getBean())){
                 return EXCUTE_ERROR;
             }
         }else if(TABLE_SELECT.equals(statement.getType())){
             t.select();
         }else if(TABLE_UPDATE.equals(statement.getType())){
             t.setModify(true);
-            t.insert(statement.getUser());
+            t.insert(statement.getBean());
         }else if(TABLE_DELETE.equals(statement.getType())){
-            if(!t.delete(statement.getUser())){
+            if(!t.delete(statement.getBean())){
                 return EXCUTE_ERROR;
             }
         }
         return EXCUTE_SUCCESS;
     }
 
-    private static PrepareResult prepareStatement (String s, Statement statement) {
-        if (s.contains(TABLE_SELECT)){
-            statement.setType(TABLE_SELECT);
-            return PREPARE_SUCCESS;
-        }else if (s.contains(TABLE_INSERT)){
-            //将语句写入redo.log
-            MyFileUtils.writeLine(s);
-            statement.setType(TABLE_INSERT);
-            String[] strings = s.split(" ");
-            if (strings.length!=TABLE_LINE_NUM){
-                System.out.println(Arrays.toString(strings));
-                return PREPARE_SYNTAX_ERROR;
-            }
-            statement.setUser(new User(Integer.parseInt(strings[1]),strings[2],strings[3]));
-            return PREPARE_SUCCESS;
-        }else if(s.contains(TABLE_UPDATE)){
-            statement.setType(TABLE_UPDATE);
-            String[] strings = s.split(" ");
-            if (strings.length!=TABLE_LINE_NUM){
-                System.out.println(Arrays.toString(strings));
-                return PREPARE_SYNTAX_ERROR;
-            }
-            statement.setUser(new User(Integer.parseInt(strings[1]),strings[2],strings[3]));
-            return PREPARE_SUCCESS;
-        }else if(s.contains(TABLE_DELETE)){
-            statement.setType(TABLE_DELETE);
-            String s1 = s.trim();
-            try {
-                int i = Integer.parseInt(s1);
-                statement.setUser(new User(i));
-            }catch (Exception e){
-                return PREPARE_SYNTAX_ERROR;
-            }
-        }
-        return PREPARE_UNRECOGNIZED_STATEMENT;
+    /**
+     * 语法检查
+     * @param s
+     * @param statement
+     * @return
+     */
+    private static PrepareResult prepareStatement (String s, Statement statement){
+        return ParseCommand.prepareStatement(s,statement);
     }
 
     private static void printPrompt() {

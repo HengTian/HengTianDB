@@ -1,24 +1,10 @@
 package online.hengtian.myperl;
 
-import online.hengtian.table.User;
-
-public class Statement {
+import lombok.Data;
+import online.hengtian.table.TableBean;
+@Data
+public class Statement<T extends TableBean> {
     private String type;
-    private User user;
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
+    private T bean;
+    private String tableName;
 }

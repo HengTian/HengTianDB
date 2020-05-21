@@ -1,7 +1,9 @@
 package online.hengtian.memory;
 
+import lombok.Data;
 import online.hengtian.mytree.BPlusTree;
 import online.hengtian.mytree.Node;
+import online.hengtian.table.TableBean;
 import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
 import online.hengtian.utils.MyFileUtils;
@@ -19,7 +21,8 @@ import static online.hengtian.memory.DbSystem.*;
  * @version 1.0
  * @date 2020/4/15 10:06
  */
-public class Table implements Serializable {
+@Data
+public class Table<T extends TableBean> implements Serializable {
 
     private static final long serialVersionUID = 5256253515960413663L;
     /**
@@ -75,30 +78,30 @@ public class Table implements Serializable {
         }
         return t;
     }
-    public boolean delete(User user){
-        if(tree.get(user.getId())==null){
+    public boolean delete(T bean){
+        if(tree.get(bean.getId())==null){
             return false;
         }
-        tree.remove(user.getId());
+        tree.remove(bean.getId());
         return true;
     }
-    public boolean insert(User user){
+    public boolean insert(T bean){
         if(tree==null){
             tree=new BPlusTree(TREE_LEVEL,TREE_LENGTH);
         }
-        if(tree.get(user.getId())!=null&&!isModify){
+        if(tree.get(bean.getId())!=null&&!isModify){
             return false;
         }
-        tree.insertOrUpdate(user.getId(),user);
-        Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
-        indexTree.insertOrUpdate(user.getId(),s.get().length);
+        tree.insertOrUpdate(bean.getId(),bean);
+        Optional<byte[]>s = ByteArrayUtils.objectToBytes(bean);
+        indexTree.insertOrUpdate(bean.getId(),s.get().length);
         return true;
     }
     public boolean updatePage(){
         List<Object> values = tree.getValues();
-        List<User> users=new ArrayList<>();
+        List<T> users=new ArrayList<>();
         for (Object user:values) {
-            users.add((User)user);
+            users.add((T)user);
         }
         getPager().updatePageRow(users,0,this);
         return true;
@@ -108,7 +111,7 @@ public class Table implements Serializable {
         List<Object> values = tree.getValues();
         for (Object user:values) {
             try {
-                insertPageRow((User)user);
+                insertPageRow((T)user);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -121,7 +124,7 @@ public class Table implements Serializable {
      * @param user
      * @throws IOException
      */
-    public boolean insertPageRow (User user) throws IOException {
+    public boolean insertPageRow (T user) throws IOException {
         Optional<byte[]>s = ByteArrayUtils.objectToBytes(user);
         if (getPager().getPages()==null){
             getPager().setPages(new ArrayList<>());
@@ -313,68 +316,5 @@ public class Table implements Serializable {
                 ", keys=" + Arrays.toString(keys.toArray()) +
                 ", pager=" + pager +
                 '}';
-    }
-    public List<Integer> getIndexs() {
-        return indexs;
-    }
-
-    public void setIndexs(List<Integer> indexs) {
-        this.indexs = indexs;
-    }
-
-    public boolean isModify() {
-        return isModify;
-    }
-
-    public void setModify(boolean modify) {
-        isModify = modify;
-    }
-
-    public Integer getNumPages() {
-        return numPages;
-    }
-
-    public void setNumPages(Integer numPages) {
-        this.numPages = numPages;
-    }
-
-    public Pager getPager() {
-        return pager;
-    }
-
-    public void setPager(Pager pager) {
-        this.pager = pager;
-    }
-
-    public Integer getNumRows() {
-        return numRows;
-    }
-
-    public void setNumRows(Integer numRows) {
-        this.numRows = numRows;
-    }
-
-    public List<Comparable> getKeys() {
-        return keys;
-    }
-
-    public void setKeys(List<Comparable> keys) {
-        this.keys = keys;
-    }
-
-    public BPlusTree getTree() {
-        return tree;
-    }
-
-    public void setTree(BPlusTree tree) {
-        this.tree = tree;
-    }
-
-    public BPlusTree getIndexTree() {
-        return indexTree;
-    }
-
-    public void setIndexTree(BPlusTree indexTree) {
-        this.indexTree = indexTree;
     }
 }
