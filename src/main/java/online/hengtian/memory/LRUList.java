@@ -1,18 +1,22 @@
 package online.hengtian.memory;
 
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * @author <a href="lzh@sq108.com">陆子恒</a>
  * @date 2020/4/26 10:27
  */
-public class LRUList{
+public class LRUList<T>{
     LinkedHashMap<Comparable,Page> oldList;
     LinkedHashMap<Comparable,Page> youngList;
+
+    Queue<Page> flushList;
     private int size;
+
+    public LRUList(Queue<Page> flushList) {
+        this(256,0.3f);
+        this.flushList=flushList;
+    }
 
     /**
      *
@@ -72,5 +76,9 @@ public class LRUList{
             }
         }
         return null;
+    }
+
+    public void addAll(List<Page> pagesList) {
+
     }
 }

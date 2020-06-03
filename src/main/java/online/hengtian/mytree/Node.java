@@ -1,10 +1,12 @@
 package online.hengtian.mytree;
 
+import lombok.Data;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
+@Data
 public class Node {
     //是否为叶子节点
     protected boolean isLeaf;
@@ -14,13 +16,13 @@ public class Node {
     protected Node previous;
     protected Node next;
     //如果是叶子节点，保存的就是以key为关键字，obj为值的数据，obj代表一行类似
-    protected List<Map.Entry<Comparable,Object>> entries;
+    protected List<Map.Entry<Comparable,Object>> data;
     //如果不是叶子节点，保存的就是索引
     protected List<Node> children;
 
     public Node(boolean isLeaf) {
         this.isLeaf=isLeaf;
-        entries=new ArrayList<Map.Entry<Comparable, Object>>();
+        data=new ArrayList<Map.Entry<Comparable, Object>>();
         if(!isLeaf){
             children=new ArrayList<Node>();
         }
@@ -33,27 +35,22 @@ public class Node {
 
     public RowIndex get(Comparable key){
         if(isLeaf){
-            for (int i=0;i<entries.size();i++){
-                if(entries.get(i).getKey().compareTo(key)==0){
+            for (int i=0;i<data.size();i++){
+                if(data.get(i).getKey().compareTo(key)==0){
                     return new RowIndex(this,i);
                 }
             }
-//            for(Map.Entry<Comparable,Object> entry:entries){
-//                if(entry.getKey().compareTo(key)==0){
-//                    return entry.getValue();
-//                }
-//            }
             return null;
         }else {
-            if(key.compareTo(entries.get(0).getKey())<=0){
+            if(key.compareTo(data.get(0).getKey())<=0){
                 return children.get(0).get(key);
-            }else if(key.compareTo(entries.get(entries.size()-1).getKey())>=0){
-                return children.get(entries.size()-1).get(key);
+            }else if(key.compareTo(data.get(data.size()-1).getKey())>=0){
+                return children.get(data.size()-1).get(key);
             }else{
 //                遍历1~size-1的节点
-                for(int i=0;i<entries.size();i++){
+                for(int i=0;i<data.size();i++){
                     //找到关键字
-                    if(entries.get(i).getKey().compareTo(key) <= 0 && entries.get(i+1).getKey().compareTo(key) > 0){
+                    if(data.get(i).getKey().compareTo(key) <= 0 && data.get(i+1).getKey().compareTo(key) > 0){
                         return children.get(i).get(key);
                     }
                 }
@@ -66,7 +63,7 @@ public class Node {
         //如果是叶子节点
         if(isLeaf){
             //直接插入，不需要分裂
-            if(contains(key)||entries.size()<tree.getLength()){
+            if(contains(key)||data.size()<tree.getLength()){
                 insertOrUpdate(key,obj);
                 if(parent!=null){
                     parent.updateInsert(tree);
@@ -97,10 +94,10 @@ public class Node {
                 //先放后分，先分后放的话还需要判断应该放在左边还是右边
                 insertOrUpdate(key,obj);
                 for(int i=0;i<leftSize;i++){
-                    left.getEntries().add(entries.get(i));
+                    left.getData().add(data.get(i));
                 }
                 for(int i=0;i<rightSize;i++){
-                    right.getEntries().add(entries.get(i+leftSize));
+                    right.getData().add(data.get(i+leftSize));
                 }
 
                 if(parent!=null){
@@ -110,7 +107,7 @@ public class Node {
                     right.setParent(parent);
                     parent.getChildren().add(index,left);
                     parent.getChildren().add(index+1,right);
-                    setEntries(null);
+                    setData(null);
                     setChildren(null);
                     //父节点更新关键字
                     parent.updateInsert(tree);
@@ -123,22 +120,21 @@ public class Node {
                     right.setParent(parent);
                     parent.getChildren().add(left);
                     parent.getChildren().add(right);
-                    setEntries(null);
+                    setData(null);
                     setChildren(null);
-
                     //更新根节点
                     parent.updateInsert(tree);
                 }
             }
         }else{
             //todo
-            if(key.compareTo(entries.get(0).getKey())<=0){
+            if(key.compareTo(data.get(0).getKey())<=0){
                 children.get(0).insertOrUpdate(key,obj,tree);
-            }else if(key.compareTo(entries.get(entries.size()-1).getKey())>=0){
+            }else if(key.compareTo(data.get(data.size()-1).getKey())>=0){
                 children.get(children.size()-1).insertOrUpdate(key,obj,tree);
             }else{
-                for(int i=0;i<entries.size();i++){
-                    if (entries.get(i).getKey().compareTo(key) <= 0 && entries.get(i+1).getKey().compareTo(key) > 0) {
+                for(int i=0;i<data.size();i++){
+                    if (data.get(i).getKey().compareTo(key) <= 0 && data.get(i+1).getKey().compareTo(key) > 0) {
                         children.get(i).insertOrUpdate(key, obj, tree);
                         break;
                     }
@@ -159,12 +155,12 @@ public class Node {
             //均摊
             for(int i=0;i<leftSize;i++){
                 left.getChildren().add(children.get(i));
-                left.getEntries().add(new AbstractMap.SimpleEntry<Comparable, Object>(children.get(i).getEntries().get(0).getKey(),null));
+                left.getData().add(new AbstractMap.SimpleEntry<Comparable, Object>(children.get(i).getData().get(0).getKey(),null));
                 children.get(i).setParent(left);
             }
             for(int i=0;i<rightSize;i++){
                 right.getChildren().add(children.get(i+leftSize));
-                right.getEntries().add(new AbstractMap.SimpleEntry<Comparable, Object>(children.get(i+leftSize).getEntries().get(0).getKey(),null));
+                right.getData().add(new AbstractMap.SimpleEntry<Comparable, Object>(children.get(i+leftSize).getData().get(0).getKey(),null));
                 children.get(i+leftSize).setParent(right);
             }
             //如果不是根节点
@@ -178,7 +174,7 @@ public class Node {
                 //父节点更新索引
                 parent.updateInsert(tree);
                 //回收分裂之前的内存
-                setEntries(null);
+                setData(null);
                 setChildren(null);
                 setParent(null);
 
@@ -195,7 +191,7 @@ public class Node {
                 //父节点更新索引
                 parent.updateInsert(tree);
                 //回收分裂之前的内存
-                setEntries(null);
+                setData(null);
                 setChildren(null);
             }
 
@@ -207,14 +203,14 @@ public class Node {
     protected void validate(Node node,BPlusTree tree){
         //如果关键字个数与子节点个数相同
         //首先此时是非叶子节点
-        if(node.getEntries().size()==node.getChildren().size()){
-            for(int i=0;i<node.getEntries().size();i++){
+        if(node.getData().size()==node.getChildren().size()){
+            for(int i=0;i<node.getData().size();i++){
                 //获取数据节点中列表的第一个元素
-                Comparable key=node.getChildren().get(i).getEntries().get(0).getKey();
+                Comparable key=node.getChildren().get(i).getData().get(0).getKey();
                 //如果索引节点上的数据和数据节点中第一个元素的值不相同，就替换
-                if(node.getEntries().get(i).getKey().compareTo(key)!=0){
-                    node.getEntries().remove(i);
-                    node.getEntries().add(i,new AbstractMap.SimpleEntry<>(key,null));
+                if(node.getData().get(i).getKey().compareTo(key)!=0){
+                    node.getData().remove(i);
+                    node.getData().add(i,new AbstractMap.SimpleEntry<>(key,null));
                     //依次更新父节点
                     if(!node.isRoot()){
                         validate(node.getParent(),tree);
@@ -227,10 +223,10 @@ public class Node {
         ||(node.getChildren().size()>=tree.getOrder()/2
         &&node.getChildren().size()<=tree.getOrder()
         &&node.getChildren().size()>=2)){
-            node.getEntries().clear();
+            node.getData().clear();
             for(int i=0;i<node.getChildren().size();i++){
-                Comparable key=node.getChildren().get(i).getEntries().get(0).getKey();
-                node.getEntries().add(new AbstractMap.SimpleEntry<>(key,null));
+                Comparable key=node.getChildren().get(i).getData().get(0).getKey();
+                node.getData().add(new AbstractMap.SimpleEntry<>(key,null));
                 if(!node.isRoot){
                     validate(node.getParent(),tree);
                 }
@@ -243,34 +239,34 @@ public class Node {
     public void insertOrUpdate(Comparable key, Object obj) {
         Map.Entry<Comparable,Object> entry=new AbstractMap.SimpleEntry<Comparable, Object>(key,obj);
         //如果关键字列表长度为0，则直接插入
-        if(entries.size()==0){
-            entries.add(entry);
+        if(data.size()==0){
+            data.add(entry);
             return;
         }
         //遍历改列表
-        for(int i=0;i<entries.size();i++){
+        for(int i=0;i<data.size();i++){
             //如果关键字存在，就更新
-            if(entries.get(i).getKey().compareTo(key)==0){
-                entries.get(i).setValue(obj);
+            if(data.get(i).getKey().compareTo(key)==0){
+                data.get(i).setValue(obj);
                 return;
-            }else if(entries.get(i).getKey().compareTo(key)>0){
+            }else if(data.get(i).getKey().compareTo(key)>0){
                 if(i==0){
-                    entries.add(0,entry);
+                    data.add(0,entry);
                     return;
                 }else {
-                    entries.add(i,entry);
+                    data.add(i,entry);
                     return;
                 }
             }
         }
         //插入到末尾
-        entries.add(entries.size(),entry);
+        data.add(data.size(),entry);
     }
 
     //判断当前节点是否包含该关键字
     protected boolean contains(Comparable key) {
-        for (Map.Entry<Comparable, Object> entry : entries) {
-            if (entry.getKey().compareTo(key) == 0) {
+        for (Map.Entry<Comparable, Object> one : data) {
+            if (one.getKey().compareTo(key) == 0) {
                 return true;
             }
         }
@@ -284,38 +280,39 @@ public class Node {
             }
             if(isRoot){
                 remove(key);
+                return;
             }
-            if(entries.size()>tree.getLength()/2&&entries.size()>2){
+            if(data.size()>tree.getLength()/2&&data.size()>2){
                 remove(key);
             }else{
                 if(previous!=null
-                        &&previous.getEntries().size()>tree.getLength()/2
-                        &&previous.getEntries().size()>2
+                        &&previous.getData().size()>tree.getLength()/2
+                        &&previous.getData().size()>2
                         &&previous.getParent()==parent){
-                    int size=previous.getEntries().size();
-                    Map.Entry<Comparable, Object> entry = previous.getEntries().get(size - 1);
-                    previous.getEntries().remove(entry);
-                    entries.add(0,entry);
+                    int size=previous.getData().size();
+                    Map.Entry<Comparable, Object> entry = previous.getData().get(size - 1);
+                    previous.getData().remove(entry);
+                    data.add(0,entry);
                     remove(key);
                 }else if(next!=null
-                    && next.getEntries().size()>tree.getLength()/2
-                    && next.getEntries().size()>2
+                    && next.getData().size()>tree.getLength()/2
+                    && next.getData().size()>2
                     && next.getParent()==parent){
-                    Map.Entry<Comparable, Object> entry = next.getEntries().get(0);
-                    next.getEntries().remove(entry);
-                    entries.add(entry);
+                    Map.Entry<Comparable, Object> entry = next.getData().get(0);
+                    next.getData().remove(entry);
+                    data.add(entry);
                     remove(key);
                 }else{
                     if(previous!=null
-                        &&(previous.getEntries().size()<=tree.getLength()/2||previous.getEntries().size()>2)
+                        &&(previous.getData().size()<=tree.getLength()/2||previous.getData().size()>2)
                         &&previous.getParent()==parent){
-                        for (int i = previous.getEntries().size() - 1; i >=0; i--) {
+                        for (int i = previous.getData().size() - 1; i >=0; i--) {
                             //从末尾开始添加到首位
-                            entries.add(0, previous.getEntries().get(i));
+                            data.add(0, previous.getData().get(i));
                         }
                         remove(key);
                         previous.setParent(null);
-                        previous.setEntries(null);
+                        previous.setData(null);
                         parent.getChildren().remove(previous);
                         //更新链表
                         if (previous.getPrevious() != null) {
@@ -330,15 +327,15 @@ public class Node {
                             previous = null;
                         }
                     }else if(next != null
-                            && (next.getEntries().size() <= tree.getLength() / 2 || next.getEntries().size() <= 2)
+                            && (next.getData().size() <= tree.getLength() / 2 || next.getData().size() <= 2)
                             && next.getParent() == parent){
-                        for (int i = 0; i < next.getEntries().size(); i++) {
+                        for (int i = 0; i < next.getData().size(); i++) {
                             //从首位开始添加到末尾
-                            entries.add(next.getEntries().get(i));
+                            data.add(next.getData().get(i));
                         }
                         remove(key);
                         next.setParent(null);
-                        next.setEntries(null);
+                        next.setData(null);
                         parent.getChildren().remove(next);
                         //更新链表
                         if (next.getNext() != null) {
@@ -358,15 +355,15 @@ public class Node {
             //如果不是叶子节点   
         }else {
             //如果key小于等于节点最左边的key，沿第一个子节点继续搜索 
-            if (key.compareTo(entries.get(0).getKey()) <= 0) {
+            if (key.compareTo(data.get(0).getKey()) <= 0) {
                 children.get(0).remove(key, tree);
                 //如果key大于节点最右边的key，沿最后一个子节点继续搜索 
-            }else if (key.compareTo(entries.get(entries.size()-1).getKey()) >= 0) {
+            }else if (key.compareTo(data.get(data.size()-1).getKey()) >= 0) {
                 children.get(children.size()-1).remove(key, tree);
                 //否则沿比key大的前一个子节点继续搜索 
             }else {
-                for (int i = 0; i < entries.size(); i++) {
-                    if (entries.get(i).getKey().compareTo(key) <= 0 && entries.get(i+1).getKey().compareTo(key) > 0) {
+                for (int i = 0; i < data.size(); i++) {
+                    if (data.get(i).getKey().compareTo(key) <= 0 && data.get(i+1).getKey().compareTo(key) > 0) {
                         children.get(i).remove(key, tree);
                         break;
                     }
@@ -390,7 +387,7 @@ public class Node {
                     tree.setRoot(root);
                     root.setParent(null);
                     root.setRoot(true);
-                    setEntries(null);
+                    setData(null);
                     setChildren(null);
                 }
             } else {
@@ -445,7 +442,7 @@ public class Node {
                             child.setParent(this);
                         }
                         previous.setChildren(null);
-                        previous.setEntries(null);
+                        previous.setData(null);
                         previous.setParent(null);
                         parent.getChildren().remove(previous);
                         validate(this, tree);
@@ -461,7 +458,7 @@ public class Node {
                             child.setParent(this);
                         }
                         next.setChildren(null);
-                        next.setEntries(null);
+                        next.setData(null);
                         next.setParent(null);
                         parent.getChildren().remove(next);
                         validate(this, tree);
@@ -476,78 +473,17 @@ public class Node {
     //删除叶子节点中的数据
     protected void remove(Comparable key){
         int index=-1;
-        for(int i=0;i<entries.size();i++){
-            if(entries.get(i).getKey().compareTo(key)==0){
+        for(int i=0;i<data.size();i++){
+            if(data.get(i).getKey().compareTo(key)==0){
                 index=i;
                 break;
             }
         }
         if(index!=-1){
-            entries.remove(index);
+            data.remove(index);
         }
     }
 
-
-
-    public boolean isLeaf() {
-        return isLeaf;
-    }
-
-    public void setLeaf(boolean leaf) {
-        isLeaf = leaf;
-    }
-
-    public boolean isRoot() {
-        return isRoot;
-    }
-
-    public void setRoot(boolean root) {
-        isRoot = root;
-    }
-
-    public Node getParent() {
-        return parent;
-    }
-
-    public void setParent(Node parent) {
-        this.parent = parent;
-    }
-
-    public Node getPrevious() {
-        return previous;
-    }
-
-    public void setPrevious(Node previous) {
-        this.previous = previous;
-    }
-
-    public Node getNext() {
-        return next;
-    }
-
-    public void setNext(Node next) {
-        this.next = next;
-    }
-
-    public List<Map.Entry<Comparable, Object>> getEntries() {
-        return entries;
-    }
-
-    public void setEntries(List<Map.Entry<Comparable, Object>> entries) {
-        this.entries = entries;
-    }
-
-    public List<Node> getChildren() {
-        return children;
-    }
-
-    public void setChildren(List<Node> children) {
-        this.children = children;
-    }
-
-
-    //toString()
-    //todo
     @Override
     public String toString(){
         StringBuilder sb = new StringBuilder();
@@ -558,7 +494,7 @@ public class Node {
         sb.append(isLeaf);
         sb.append(", ");
         sb.append("keys: ");
-        for (Map.Entry entry : entries){
+        for (Map.Entry entry : data){
             sb.append(entry.getKey());
             sb.append(", ");
         }

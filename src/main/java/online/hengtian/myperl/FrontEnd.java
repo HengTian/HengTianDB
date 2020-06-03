@@ -1,26 +1,19 @@
 package online.hengtian.myperl;
 
-import online.hengtian.memory.DbSystem;
-import online.hengtian.memory.Page;
 import online.hengtian.memory.Table;
-import online.hengtian.mytree.BPlusTree;
-import online.hengtian.table.TableBean;
-import online.hengtian.table.User;
+import online.hengtian.memory.Tabler;
+import online.hengtian.table.MyDBTypeConvertor;
+import online.hengtian.utils.JavaBeanUtils;
 import online.hengtian.utils.MyFileUtils;
-import online.hengtian.utils.SerializeUtils;
-import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Constructor;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 import static online.hengtian.memory.DbSystem.*;
 import static online.hengtian.myperl.ExcuteResult.*;
-import static online.hengtian.myperl.PrepareResult.*;
 
 //后面可以换成JLine框架实现自动补全等命令行常用功能
 
@@ -30,91 +23,104 @@ import static online.hengtian.myperl.PrepareResult.*;
  */
 public class FrontEnd {
     public final static File redoLog=new File("redo.log");
+    public final static Tabler tabler=new Tabler();
 
+    /**
+     * 读取输入直到;结束
+     * @param br
+     * @return
+     * @throws IOException
+     */
+    public static String readCommand(BufferedReader br) throws IOException {
+        StringBuffer sb=new StringBuffer();
+        String s;
+        printPrompt();
+        do{
+            s=br.readLine();
+            sb.append(" "+s);
+            printPromptContinue();
+        }while(!s.endsWith(";"));
+        return sb.toString();
+    }
+    public static void print(String s){
+        System.out.println(s);
+    }
     public static void main(String[] args){
         printPromptFront();//打印提示内容
-        InputStreamReader isr = new InputStreamReader(System.in);
-        BufferedReader br = new BufferedReader(isr);
         boolean isExit=true;
-        Table table=new Table().dbOpen("user");
+//        Table table=new Table().dbOpen("user");
         while(isExit){
-            printPrompt();
-            String s = null;
             Statement statement=new Statement();
-            try {
-                s = br.readLine();
-                StringBuffer sb=new StringBuffer();
-                while(!s.endsWith(";")){
-                    sb.append(s);
-                    continue;
-                }
-                s=sb.toString();
+            InputStreamReader isr = new InputStreamReader(System.in);
+            BufferedReader br = new BufferedReader(isr);
+            try{
+                String s=readCommand(br);
                 System.out.println(s);
-                if (!"exit;".equals(s)){
-                    switch (prepareStatement(s,statement)){
+                if (!s.contains("exit")){
+                    PrepareResult prepareResult = prepareStatement(s, statement);
+                    switch (prepareResult){
                         case PREPARE_SUCCESS:
-                            System.out.println(statement.getType()+" success");
-                            if (statement.getBean()!=null) {
-                                System.out.println(statement.getBean().toString());
-                            }
-                            break;
-                        case PREPARE_SYNTAX_ERROR:
-                            System.out.println("Syntax error");
-                            break;
-                        case PREPARE_UNRECOGNIZED_STATEMENT:
-                            System.out.println("Unrecognized command '"+s+"'");
+                            MyFileUtils.writeLine(s);
                             break;
                         default:
-                            System.out.println("Unknown error");
-                            break;
+                            print(prepareResult.getMessage());
+                            continue;
                     }
-                    switch (excuteStatement(table,statement)){
-                        case EXCUTE_SUCCESS:
-                            System.out.println("SUCCESS");
-                            break;
-                        case EXCUTE_ERROR:
-                            System.out.println("ERROR");
-                            break;
-                        case EXCUTE_TABLE_FULL:
-                            System.out.println("TABLE_FULL");
-                            break;
-                        case EXCUTE_TABLE_LINE_LARGER:
-                            System.out.println("TABLE_LINE_LARGER");
-                            break;
-                        default:
-                            System.out.println("UNKNOWN");
-                            break;
-                    }
+                    ExcuteResult excuteResult = excuteStatement(tabler, statement);
+                    print(excuteResult.getMessage());
                 }else{
-                    System.out.println("Thanks for using~");
-                    table.dbClose("user");
+                    print("Thanks for using~");
+                    for(Map.Entry<String,Table> tableEntry: DB_TABLES.entrySet()){
+                        tabler.dbClose(tableEntry.getKey());
+                    }
                     isExit=false;
-                    br.close();
-                    isr.close();
                 }
-
             } catch (IOException e) {
+                isExit=false;
                 e.printStackTrace();
             }
         }
     }
 
-    private static ExcuteResult excuteStatement(Table t,Statement statement){
-        if(TABLE_INSERT.equals(statement.getType())){
-            t.setModify(false);
-            if(!t.insert(statement.getBean())){
-                return EXCUTE_ERROR;
-            }
-        }else if(TABLE_SELECT.equals(statement.getType())){
-            t.select();
-        }else if(TABLE_UPDATE.equals(statement.getType())){
-            t.setModify(true);
-            t.insert(statement.getBean());
-        }else if(TABLE_DELETE.equals(statement.getType())){
-            if(!t.delete(statement.getBean())){
-                return EXCUTE_ERROR;
-            }
+    private static ExcuteResult excuteStatement(Tabler t,Statement statement){
+        switch (statement.getType()){
+            case TABLE_INSERT:
+                return t.insertOrUpdate(statement.getTableInfo().getName(),statement.getBean());
+            case TABLE_SELECT:
+                return t.select(statement.getTableInfo().getName(),statement.getParams());
+            case TABLE_UPDATE:
+                return t.insertOrUpdate(statement.getTableInfo().getName(),statement.getBean());
+            case TABLE_DELETE:
+                return t.delete(statement.getTableInfo().getName(),statement.getParams());
+            case TABLE_CREATE:
+                try {
+                    JavaBeanUtils.createTableBean(statement.getTableInfo(),new MyDBTypeConvertor());
+                    tabler.dbOpen(statement.getTableInfo().getName(),true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return EXCUTE_ERROR;
+                }
+                break;
+            case TABLE_DROP:
+                return t.drop(statement.getTableInfo().getName());
+            default:
+                return EXCUTE_SUCCESS;
         }
+//        if(TABLE_INSERT.equals(statement.getType())){
+//            t.setModify(false);
+//            if(!t.insert(statement.getBean())){
+//                return EXCUTE_ERROR;
+//            }
+//        }else if(TABLE_SELECT.equals(statement.getType())){
+//            t.select();
+//        }else if(TABLE_UPDATE.equals(statement.getType())){
+//            t.setModify(true);
+//            t.insert(statement.getBean());
+//        }else if(TABLE_DELETE.equals(statement.getType())){
+//            if(!t.delete(statement.getBean())){
+//                return EXCUTE_ERROR;
+//            }
+//        }
         return EXCUTE_SUCCESS;
     }
 
@@ -130,6 +136,9 @@ public class FrontEnd {
 
     private static void printPrompt() {
         System.out.print("HengTianDB> ");
+    }
+    private static void printPromptContinue() {
+        System.out.print("        --> ");
     }
 
     private static void printPromptFront() {

@@ -6,5 +6,5 @@ public interface TypeConvertor {
      * @param columnType
      * @return
      */
-    String databaseType2JavaType(String columnType);
+    String databaseType2JavaType(String columnType) throws Exception;
 }

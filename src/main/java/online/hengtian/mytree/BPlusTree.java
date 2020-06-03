@@ -46,7 +46,7 @@ public class BPlusTree implements B {
 
     @Override
     public void remove(Comparable key) {
-
+        root.remove(key,this);
     }
 
     @Override
@@ -55,11 +55,13 @@ public class BPlusTree implements B {
     }
 
     @Override
-    public void printTree() {
+    public void printTree(Comparable a,Comparable b) {
         Node head=getHead();
         while(head!=null) {
-            for (Map.Entry entry : head.getEntries()) {
-                System.out.println(entry.getValue());
+            for (Map.Entry entry : head.getData()) {
+                if(a.compareTo(entry.getKey())<=0&&b.compareTo(entry.getKey())>=0) {
+                    System.out.println("ID:"+entry.getKey()+" "+entry.getValue());
+                }
             }
             head=head.next;
         }
@@ -69,7 +71,7 @@ public class BPlusTree implements B {
         List<Comparable> result=new ArrayList<>();
         Node head=getHead();
         while(head!=null) {
-            for (Map.Entry entry : head.getEntries()) {
+            for (Map.Entry entry : head.getData()) {
                 result.add((Comparable) entry.getKey());
             }
             head=head.next;
@@ -80,7 +82,7 @@ public class BPlusTree implements B {
         List<Object> result=new ArrayList<>();
         Node head=getHead();
         while(head!=null) {
-            for (Map.Entry entry : head.getEntries()) {
+            for (Map.Entry entry : head.getData()) {
                 result.add(entry.getValue());
             }
             head=head.next;
@@ -135,7 +137,7 @@ public class BPlusTree implements B {
         System.out.println("插入耗时: " + duration+" ms ");
         Node head=tree.getHead();
         while(head.next!=null) {
-            for (Map.Entry entry : head.getEntries()) {
+            for (Map.Entry entry : head.getData()) {
                 System.out.print(entry.getValue() + " ");
             }
             head=head.next;

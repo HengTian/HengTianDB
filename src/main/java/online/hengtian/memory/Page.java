@@ -1,5 +1,6 @@
 package online.hengtian.memory;
 
+import lombok.Data;
 import online.hengtian.myperl.FrontEnd;
 import online.hengtian.utils.ByteArrayUtils;
 
@@ -15,9 +16,12 @@ import static online.hengtian.memory.DbSystem.PAGE_SIZE;
  * @version 1.0
  * @date 2020/4/15 10:05
  */
+@Data
 public class Page {
     private volatile transient List<Byte> content;
-    private boolean isModify=false;
+    private String tableName;
+    private Integer index;
+    private boolean isWrite=false;
     public Boolean append(byte[] s){
         if (content==null){
             content=new ArrayList<>();
@@ -36,20 +40,5 @@ public class Page {
         Byte[] b=new Byte[getContent().size()];
         getContent().toArray(b);
         return ByteArrayUtils.toPrimitives(b);
-    }
-    public List<Byte> getContent() {
-        return content;
-    }
-
-    public void setContent(List<Byte> content) {
-        this.content = content;
-    }
-
-    public boolean isModify() {
-        return isModify;
-    }
-
-    public void setModify(boolean modify) {
-        isModify = modify;
     }
 }

@@ -1,7 +1,6 @@
 package online.hengtian.memory;
 
 import online.hengtian.table.TableBean;
-import online.hengtian.table.User;
 import online.hengtian.utils.ByteArrayUtils;
 import online.hengtian.utils.MyFileUtils;
 
@@ -11,6 +10,9 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 import static online.hengtian.memory.DbSystem.*;
 
@@ -22,9 +24,12 @@ import static online.hengtian.memory.DbSystem.*;
  */
 public class Pager {
     private List<Page> pages;
-
+    private LRUList lruList;
+    private Queue<Page> flushList;
     public Pager() {
         pages=new ArrayList<>();
+        flushList=new ConcurrentLinkedQueue<>();
+        lruList=new LRUList(flushList);
     }
 
     public Pager pagerOpen(Table t, String fileName){
@@ -32,7 +37,7 @@ public class Pager {
         pages=new ArrayList<>();
         List<Page> pagesList = getPages(t.getIndexs(), fileName, 0, t.getNumPages());
         pages.addAll(pagesList);
-        //System.out.println(getPageNum(21,t.getIndexs()));
+        lruList.addAll(pagesList);
         return this;
     }
 
@@ -61,6 +66,8 @@ public class Pager {
                 System.out.println("page: "+pageIndex+" length:"+content.length);
                 Page page=new Page();
                 page.setContent(ByteArrayUtils.toByteList(content));
+                page.setTableName(fileName);
+                page.setIndex(pageIndex);
                 pages.add(page);
             }
 
@@ -80,8 +87,11 @@ public class Pager {
         System.out.println("写入page");
         RandomAccessFile fd = new RandomAccessFile(fileName+DB_STORAGE_SUFFIX, "rw");
         for (int i = from; i < numPage; i++) {
-            fd.seek(PAGE_SIZE * i);
-            fd.write(getPage(i).getBytes());
+            //当这个页没写回才写
+            if(!getPage(i).isWrite()) {
+                fd.seek(PAGE_SIZE * i);
+                fd.write(getPage(i).getBytes());
+            }
         }
         fd.close();
         return true;
@@ -91,6 +101,19 @@ public class Pager {
             setPages(new ArrayList<>());
         }
         getPages().add(page);
+    }
+    public void clearFlushList(){
+        while(true){
+            if(!flushList.isEmpty()){
+                Page poll = flushList.poll();
+                flushPage(poll);
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
     public <T extends TableBean> boolean updatePageRow(List<T> user, Integer index, Table t){
         if(getPages().size()==0){
@@ -125,6 +148,14 @@ public class Pager {
             sum+=indexs.get(i);
         }
         return pageNum;
+    }
+
+    /**
+     * 将一个页刷新到磁盘中，需要将该页的后面所有页都进行修改，需要考虑
+     * @param page
+     */
+    public void flushPage(Page page){
+
     }
     public Page getPage(int index){
         return getPages().get(index);

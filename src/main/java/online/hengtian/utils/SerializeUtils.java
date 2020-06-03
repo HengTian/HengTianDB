@@ -1,7 +1,5 @@
 package online.hengtian.utils;
 
-import online.hengtian.table.User;
-
 import java.io.*;
 import java.util.Optional;
 

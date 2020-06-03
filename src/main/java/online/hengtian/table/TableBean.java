@@ -2,8 +2,9 @@ package online.hengtian.table;
 
 import lombok.Data;
 
-@Data
-public class TableBean {
-    private Integer id;
+import java.io.Serializable;
 
+@Data
+public class TableBean implements Serializable {
+    private Long id;
 }
